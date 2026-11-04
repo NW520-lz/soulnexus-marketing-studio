@@ -1,0 +1,83 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    .cap-group {
+      position: absolute;
+      left: 0;
+      bottom: 640px;
+      width: 100%;
+      padding: 0 70px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 10px;
+      overflow: visible;
+      opacity: 0;
+      visibility: hidden;
+    }
+    .cap-word {
+      position: relative;
+      isolation: isolate;
+      display: inline-block;
+      padding: 6px 14px 10px;
+      font-family: "Montserrat", sans-serif;
+      font-weight: 800;
+      font-size: 76px;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    }
+    .cap-bg {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: #00d9fc;
+      border-radius: 12px;
+      opacity: 0;
+      transform: scaleX(0);
+      transform-origin: 0% 50%;
+    }
+    .cap-text {
+      position: relative;
+      z-index: 1;
+      -webkit-text-stroke: 4px #000000;
+      paint-order: stroke fill;
+    }
+  </style>
+  <div id="root" data-composition-id="captions" data-width="1080" data-height="1920">
+__GROUPS_HTML__
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const groups = __GROUPS_JSON__;
+    groups.forEach(function (group) {
+      const groupEl = document.getElementById(group.id);
+      const text = group.words.map(function (word) { return word.text; }).join(" ").toUpperCase();
+      // Each word carries 28px of padding plus a 10px gap, which the text measurement does not see.
+      const maxWidth = 900 - group.words.length * 38;
+      const fit = window.__hyperframes.fitTextFontSize(text, { fontFamily: "Montserrat", fontWeight: 800, maxWidth: maxWidth });
+      groupEl.querySelectorAll(".cap-word").forEach(function (wordEl) { wordEl.style.fontSize = fit.fontSize + "px"; });
+
+      tl.set(groupEl, { visibility: "visible" }, group.start);
+      tl.fromTo(groupEl, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.12, ease: "power2.out" }, group.start);
+      group.words.forEach(function (word) {
+        const bg = document.getElementById(word.id + "-bg");
+        const label = document.getElementById(word.id + "-text");
+        tl.to(bg, { opacity: 1, scaleX: 1, duration: 0.14, ease: "power2.out" }, word.start);
+        tl.to(label, { color: "#001018", duration: 0.08 }, word.start);
+        tl.to(bg, { opacity: 0, duration: 0.1, ease: "power2.in" }, word.end);
+        tl.to(label, { color: "#ffffff", duration: 0.08 }, word.end);
+        tl.set(bg, { scaleX: 0 }, word.end + 0.1);
+      });
+      tl.to(groupEl, { opacity: 0, duration: 0.1, ease: "power2.in" }, group.end - 0.1);
+      tl.set(groupEl, { opacity: 0, visibility: "hidden" }, group.end);
+    });
+    window.__timelines["captions"] = tl;
+  </script>
+</template>

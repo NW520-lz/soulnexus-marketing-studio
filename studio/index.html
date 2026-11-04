@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SoulNexus 营销工作台</title>
+<link rel="icon" href="data:," />
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<style>
+  :root {
+    --brand: #00d9fc;
+    --bg: #0b1117;
+    --panel: #121b24;
+    --line: #22303d;
+    --text: #e6edf3;
+    --muted: #8b9bab;
+    --ok: #3fb950;
+    --warn: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, "Microsoft YaHei", sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; }
+  header h1 span { color: var(--brand); }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; }
+  .steps { display: flex; gap: 6px; margin-left: auto; }
+  .step { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .step.done { color: var(--ok); border-color: #1f4d2a; }
+  .step.now { color: #001018; background: var(--brand); border-color: var(--brand); font-weight: 600; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 12px; }
+  .banner { display: flex; align-items: center; gap: 12px; font-size: 16px; }
+  .banner.busy { border-color: #155e6e; }
+  .banner.you { border-color: var(--brand); }
+  .spinner { width: 18px; height: 18px; border: 3px solid #1d4a55; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.9s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .muted { color: var(--muted); }
+  .slot { display: grid; grid-template-columns: 24px 1fr 210px; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+  .slot:first-of-type { border-top: 0; }
+  .slot .name { font-family: Consolas, monospace; color: var(--brand); }
+  .slot .meta { font-size: 13px; color: var(--muted); }
+  .check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; }
+  .check.yes { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .drop.over { border-color: var(--brand); color: var(--brand); }
+  .drop.has { border-style: solid; border-color: #1f4d2a; color: var(--ok); }
+  .progress { height: 4px; background: var(--line); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .progress div { height: 100%; width: 0; background: var(--brand); }
+  button { font: inherit; border-radius: 10px; padding: 10px 18px; border: 1px solid var(--line); background: #1a2632; color: var(--text); cursor: pointer; }
+  button.primary { background: var(--brand); color: #001018; border-color: var(--brand); font-weight: 700; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+  textarea { width: 100%; min-height: 80px; background: #0d151c; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: inherit; }
+  .player { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  video { width: 340px; aspect-ratio: 9 / 16; background: #000; border-radius: 12px; }
+  .frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; flex: 1; min-width: 240px; }
+  .frames img, .shots img { width: 100%; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  .md { font-size: 14px; overflow-x: auto; }
+  .md table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+  .md th, .md td { border: 1px solid var(--line); padding: 4px 8px; vertical-align: top; }
+  .md code { background: #0d151c; padding: 1px 5px; border-radius: 4px; }
+  .md pre { background: #0d151c; padding: 10px; border-radius: 8px; overflow-x: auto; }
+  .md a { color: var(--brand); }
+  .hook { font-size: 18px; font-weight: 700; color: var(--brand); }
+  label.inline { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  #lightbox { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); display: none; place-items: center; z-index: 9; cursor: zoom-out; }
+  #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>SoulNexus</span> 营销工作台</h1>
+  <select id="day"></select>
+  <div class="steps" id="steps"></div>
+</header>
+<main>
+  <section>
+    <div class="card banner" id="banner"></div>
+    <div id="panel"></div>
+  </section>
+  <aside>
+    <div class="card">
+      <h2>当天资料</h2>
+      <div id="docs"></div>
+    </div>
+  </aside>
+</main>
+<div id="lightbox"><img alt="" /></div>
+<script>
+  const STEPS = ["A 选题", "B 录制", "C 剪辑", "D 发布"];
+  const STEP_OF = { research: 0, recording: 1, editing: 2, review_edit: 2, writing_posts: 3, review_posts: 3, uploading: 3, review_publish: 3, done: 4 };
+  const DOC_TITLES = { "plan.md": "脚本与录制清单", "research.md": "调研证据", "posts.md": "发布文案", "log.md": "发布记录" };
+  let currentDay = null;
+  let state = null;
+  let panelKey = "";
+  let docsKey = "";
+  const uploading = {};
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (text) => String(text ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const md = (text) => (window.marked ? marked.parse(text || "") : `<pre>${esc(text)}</pre>`);
+  const fileUrl = (path) => `/files/${currentDay}/${path}`;
+
+  async function loadDays() {
+    const data = await (await fetch("/api/days")).json();
+    const select = $("day");
+    select.innerHTML = data.days.map((d) => `<option value="${d}">${d}${d === data.today ? "（今天）" : ""}</option>`).join("");
+    if (!data.days.length) {
+      currentDay = null;
+      $("banner").className = "card banner you";
+      $("banner").innerHTML = `今天还没开始。到 Claude Code 里说 <b>「开始营销」</b>，选题完成后这里会自动出现录制清单。`;
+      return;
+    }
+    currentDay = currentDay && data.days.includes(currentDay) ? currentDay : data.days[0];
+    select.value = currentDay;
+  }
+
+  async function refresh() {
+    if (!currentDay) {
+      await loadDays();
+      if (!currentDay) return;
+    }
+    const response = await fetch(`/api/day/${currentDay}`);
+    if (!response.ok) return;
+    state = await response.json();
+    render();
+  }
+
+  function render() {
+    const { status } = state;
+    const stepIndex = STEP_OF[status.stage] ?? 0;
+    $("steps").innerHTML = STEPS.map((name, i) => `<span class="step ${i < stepIndex ? "done" : i === stepIndex ? "now" : ""}">${i < stepIndex ? "✓ " : ""}${name}</span>`).join("");
+
+    const banner = $("banner");
+    if (state.pending_signals.length) {
+      banner.className = "card banner busy";
+      banner.innerHTML = `<div class="spinner"></div><div>已通知 Claude，等它接手…<div class="muted">Claude Code 对话窗口要开着。几分钟没动静就在对话里说「继续营销」。</div></div>`;
+    } else if (status.busy) {
+      banner.className = "card banner busy";
+      banner.innerHTML = `<div class="spinner"></div><div>Claude 正在处理：${esc(status.message || "…")}</div>`;
+    } else {
+      banner.className = "card banner you";
+      banner.innerHTML = `<div>👉 ${esc(status.message || youDoText(status.stage))}</div>`;
+    }
+
+    const key = JSON.stringify([state.day, status.stage, status.busy, state.pending_signals.length, state.checklist, state.footage, state.master, state.review, state.publish_shots, state.texts["posts.md"]]);
+    if (key !== panelKey) {
+      panelKey = key;
+      $("panel").innerHTML = renderPanel();
+      bindPanel();
+    }
+    const docs = JSON.stringify([state.day, state.texts]);
+    if (docs !== docsKey) {
+      docsKey = docs;
+      const open = new Set([...document.querySelectorAll("#docs details[open]")].map((d) => d.dataset.name));
+      $("docs").innerHTML = Object.keys(DOC_TITLES).filter((name) => state.texts[name]).map((name) =>
+        `<details data-name="${name}" ${open.has(name) ? "open" : ""}><summary>${DOC_TITLES[name]}</summary><div class="md">${md(state.texts[name])}</div></details>`
+      ).join("") || `<div class="muted">还没有资料。</div>`;
+    }
+  }
+
+  function youDoText(stage) {
+    return {
+      research: "到 Claude Code 里说「开始营销」，Claude 会先找选题。",
+      recording: "按下面的清单录素材，逐条拖进来，齐了点「开始剪辑」。",
+      review_edit: "看成片，满意就点「可以，写文案」，不满意写下要改哪里。",
+      review_posts: "检查各平台文案，没问题就点「文案可以，去上传」。",
+      review_publish: "到 Roxy 发布窗口检查每个平台的上传页，自己点发布（或定时），然后点「我已发布」。",
+      done: "今天这条完成了。数据会在明天选题时回填。",
+    }[stage] || "等 Claude 处理。";
+  }
+
+  function hookLine() {
+    const plan = state.texts["plan.md"] || "";
+    const match = plan.match(/主钩子[：:]\s*(.+)/);
+    return match ? match[1].trim() : "";
+  }
+
+  function renderPanel() {
+    const { status } = state;
+    const waiting = status.busy || state.pending_signals.length;
+    if (status.stage === "recording") return renderRecording();
+    if (status.stage === "review_edit" && state.master) {
+      return `<div class="card"><h2>成片预览</h2>
+        <div class="player"><video controls preload="metadata" src="${fileUrl(state.master)}"></video>
+        <div class="frames">${state.review.map((src) => `<img src="${fileUrl(src)}" alt="" />`).join("")}</div></div>
+        ${waiting ? "" : decisionHtml("edit_approved", "可以，写文案", "edit_changes", "例如：钩子换成 xxx；第二段太长，砍到 3 秒；结尾 CTA 改成 xxx")}
+      </div>`;
+    }
+    if (status.stage === "review_posts" && state.texts["posts.md"]) {
+      return `<div class="card"><h2>发布文案</h2><div class="md">${md(state.texts["posts.md"])}</div>
+        ${waiting ? "" : decisionHtml("posts_approved", "文案可以，去上传", "posts_changes", "例如：TikTok caption 太长；X 第一条换个钩子")}
+      </div>`;
+    }
+    if (status.stage === "review_publish") {
+      return `<div class="card"><h2>上传结果</h2>
+        <p class="muted">Claude 已在 Roxy 发布窗口里填好，停在发布按钮前。你在 Roxy 里逐个检查、点发布（或设定时），再回来点下面的按钮。</p>
+        <div class="shots">${state.publish_shots.map((src) => `<img src="${fileUrl(src)}" alt="" />`).join("") || `<span class="muted">没有截图。</span>`}</div>
+        ${waiting ? "" : `<textarea id="note" placeholder="可选：哪些平台发了、哪些设了定时、哪个没发"></textarea>
+        <div class="actions"><button class="primary" data-action="published">我已发布</button></div>`}
+      </div>`;
+    }
+    if (status.stage === "done") {
+      return `<div class="card"><h2>今日完成 🎉</h2><div class="md">${md(state.texts["log.md"] || "")}</div></div>`;
+    }
+    return `<div class="card muted">${status.busy ? "完成后这里会自动更新，不用刷新页面。" : "等待 Claude。"}</div>`;
+  }
+
+  function decisionHtml(okAction, okText, changeAction, placeholder) {
+    return `<div class="actions"><button class="primary" data-action="${okAction}">${okText}</button></div>
+      <details><summary>要修改</summary><textarea id="note" placeholder="${esc(placeholder)}"></textarea>
+      <div class="actions"><button data-action="${changeAction}" data-needs-note>提交修改意见</button></div></details>`;
+  }
+
+  function uploadedFor(slot) {
+    const stem = slot.file.replace(/\.[^.]+$/, "");
+    return state.footage.find((name) => name.replace(/\.[^.]+$/, "") === stem);
+  }
+
+  function renderRecording() {
+    const hook = hookLine();
+    const slots = state.checklist;
+    const missing = slots.filter((slot) => slot.required !== false && !uploadedFor(slot));
+    const extras = state.footage.filter((name) => !slots.some((slot) => uploadedFor(slot) === name));
+    const waiting = state.status.busy || state.pending_signals.length;
+    return `
+      ${hook ? `<div class="card"><h2>今天的钩子</h2><div class="hook">${esc(hook)}</div><div class="muted">完整脚本在右侧「脚本与录制清单」。</div></div>` : ""}
+      <div class="card"><h2>录制清单 <span class="muted">（已传 ${slots.filter(uploadedFor).length}/${slots.length}）</span></h2>
+        ${slots.length ? slots.map((slot, i) => {
+          const have = uploadedFor(slot);
+          return `<div class="slot">
+            <div class="check ${have ? "yes" : ""}">${have ? "✓" : ""}</div>
+            <div><div class="name">${esc(slot.file)}${slot.required === false ? ' <span class="muted">（可选）</span>' : ""}</div>
+              <div>${esc(slot.what)}</div>
+              <div class="meta">${[slot.kind, slot.orientation, slot.seconds ? `${slot.seconds} 秒` : ""].filter(Boolean).map(esc).join(" · ")}</div></div>
+            <div><div class="drop ${have ? "has" : ""}" data-slot="${i}">${have ? `已上传 ${esc(have)}<br>拖新文件可替换` : "拖文件到这里<br>或点击选择"}</div>
+              <div class="progress"><div id="progress-${i}"></div></div></div>
+          </div>`;
+        }).join("") : `<div class="muted">Claude 还没写录制清单（checklist.json）。</div>`}
+      </div>
+      <div class="card"><h2>其他素材 <span class="muted">（清单外的，比如可商用 BGM、补拍）</span></h2>
+        <div class="drop" data-slot="extra">拖文件到这里，按原文件名保存</div>
+        <div class="progress"><div id="progress-extra"></div></div>
+        ${extras.length ? `<div class="meta muted" style="margin-top:8px">已有：${extras.map(esc).join("、")}</div>` : ""}
+      </div>
+      ${waiting ? "" : `<div class="card"><div class="actions">
+        <button class="primary" id="ready" data-action="footage_ready" ${missing.length ? "disabled" : ""}>素材齐了，开始剪辑 →</button>
+        ${missing.length ? `<label class="inline"><input type="checkbox" id="force" /> 还缺 ${missing.length} 条，也先剪</label>` : ""}
+      </div></div>`}`;
+  }
+
+  function bindPanel() {
+    document.querySelectorAll(".drop").forEach((zone) => {
+      const pick = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.onchange = () => input.files[0] && upload(zone.dataset.slot, input.files[0]);
+        input.click();
+      };
+      zone.onclick = pick;
+      zone.ondragover = (event) => { event.preventDefault(); zone.classList.add("over"); };
+      zone.ondragleave = () => zone.classList.remove("over");
+      zone.ondrop = (event) => {
+        event.preventDefault();
+        zone.classList.remove("over");
+        if (event.dataTransfer.files[0]) upload(zone.dataset.slot, event.dataTransfer.files[0]);
+      };
+    });
+    const force = $("force");
+    if (force) force.onchange = () => { $("ready").disabled = !force.checked; };
+    document.querySelectorAll("button[data-action]").forEach((button) => {
+      button.onclick = () => sendSignal(button.dataset.action, button.hasAttribute("data-needs-note"));
+    });
+    document.querySelectorAll(".frames img, .shots img").forEach((img) => {
+      img.onclick = () => { $("lightbox").querySelector("img").src = img.src; $("lightbox").style.display = "grid"; };
+    });
+  }
+
+  function upload(slotKey, file) {
+    let name = file.name;
+    if (slotKey !== "extra") {
+      const slot = state.checklist[Number(slotKey)];
+      const extension = (file.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+      name = slot.file.replace(/\.[^.]+$/, "") + extension;
+    }
+    const bar = $(`progress-${slotKey}`);
+    const request = new XMLHttpRequest();
+    request.open("PUT", `/api/day/${currentDay}/footage?name=${encodeURIComponent(name)}`);
+    request.upload.onprogress = (event) => { if (bar && event.lengthComputable) bar.style.width = `${(event.loaded / event.total) * 100}%`; };
+    request.onload = () => {
+      delete uploading[slotKey];
+      if (request.status !== 200) alert(`上传失败：${request.responseText}`);
+      refresh();
+    };
+    request.onerror = () => { delete uploading[slotKey]; alert("上传失败，检查工作台服务是否还在运行"); };
+    uploading[slotKey] = true;
+    request.send(file);
+  }
+
+  async function sendSignal(action, needsNote) {
+    const noteEl = $("note");
+    const note = noteEl ? noteEl.value.trim() : "";
+    if (needsNote && !note) { alert("先写下要改哪里"); return; }
+    await fetch(`/api/day/${currentDay}/signal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, note }) });
+    refresh();
+  }
+
+  $("day").onchange = (event) => { currentDay = event.target.value; panelKey = ""; docsKey = ""; refresh(); };
+  $("lightbox").onclick = () => { $("lightbox").style.display = "none"; };
+  loadDays().then(refresh);
+  // Skip polling while a file is uploading, so the drop zones are not re-rendered mid-upload.
+  setInterval(() => { if (!Object.keys(uploading).length) refresh(); }, 2000);
+  setInterval(loadDays, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    #typer {
+      position: absolute;
+      left: 90px;
+      right: 90px;
+      top: 280px;
+      padding: 30px 40px 40px;
+      background: rgba(0, 16, 24, 0.93);
+      border: 3px solid #00d9fc;
+      border-radius: 28px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+    }
+    #typer-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #00d9fc;
+      opacity: 0.4;
+    }
+    #typer-label {
+      margin-left: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: 0.12em;
+      color: #00d9fc;
+    }
+    #typer-line {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 56px;
+      line-height: 1.28;
+      color: #ffffff;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+    #typer-prefix {
+      color: #00d9fc;
+    }
+    .ch {
+      opacity: 0;
+    }
+    .cur {
+      display: inline-block;
+      position: relative;
+      width: 0;
+      opacity: 0;
+    }
+    .cur::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: -0.88em;
+      width: 0.55em;
+      height: 1em;
+      background: #00d9fc;
+    }
+  </style>
+  <div id="root" data-composition-id="hook" data-width="1080" data-height="1920">
+    <div id="typer">
+      <div id="typer-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span id="typer-label">SOULNEXUS</span></div>
+      <div id="typer-line"><span id="typer-prefix">&gt; </span>__HOOK_CHARS__</div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const hookDuration = __HOOK_DURATION__;
+    const typer = document.getElementById("typer");
+    const chars = Array.from(document.querySelectorAll(".ch"));
+    const cursors = Array.from(document.querySelectorAll(".cur"));
+
+    const typeStart = 0.45;
+    const typeEnd = Math.max(typeStart + 0.4, Math.min(typeStart + chars.length * 0.04, hookDuration - 0.9));
+    const fadeStart = hookDuration - 0.2;
+
+    tl.fromTo(typer, { opacity: 0, y: 40, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: "back.out(1.4)" }, 0);
+
+    // cursors[i] sits before character i, the last one after the last character: one is lit at a time.
+    tl.set(cursors[0], { opacity: 1 }, typeStart - 0.1);
+    chars.forEach(function (el, index) {
+      const at = typeStart + ((typeEnd - typeStart) * index) / Math.max(1, chars.length - 1);
+      tl.set(el, { opacity: 1 }, at);
+      tl.set(cursors[index], { opacity: 0 }, at);
+      tl.set(cursors[index + 1], { opacity: 1 }, at);
+    });
+    const lastCursor = cursors[cursors.length - 1];
+    for (let blinkAt = typeEnd + 0.2, visible = false; blinkAt < fadeStart; blinkAt += 0.25, visible = !visible) {
+      tl.set(lastCursor, { opacity: visible ? 1 : 0 }, blinkAt);
+    }
+
+    // "Enter" beat: one quick pulse right after the last character.
+    tl.to(typer, { scale: 1.03, duration: 0.08, ease: "power2.out" }, typeEnd + 0.12);
+    tl.to(typer, { scale: 1, duration: 0.12, ease: "power2.in" }, typeEnd + 0.2);
+
+    tl.to(typer, { opacity: 0, y: -24, duration: 0.2, ease: "power2.in" }, fadeStart);
+    window.__timelines["hook"] = tl;
+  </script>
+</template>
